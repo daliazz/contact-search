@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Customer Contact Directory</title>
+
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f3f4f6;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 40px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #111827;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      margin-bottom: 25px;
+    }
+
+    .company-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .company-header {
+      background: #2563eb;
+      color: white;
+      padding: 14px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .account-manager {
+      background: #eff6ff;
+      padding: 10px 14px;
+      font-size: 14px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f9fafb;
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background: #f3f4f6;
+    }
+
+    .no-results {
+      text-align: center;
+      color: #6b7280;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Customer Contact Directory</h1>
+
+    <input
+      type="text"
+      id="search"
+      placeholder="Search company, contact name, title, phone, or account manager..."
+    />
+
+    <div id="results"></div>
+
+    <div class="no-results" id="noResults" style="display:none;">
+      No matching results found.
+    </div>
+  </div>
+
+  <script>
+    let contacts = [];
+
+    fetch("contacts.csv")
+      .then(res => res.text())
+      .then(text => {
+        const lines = text.trim().split("\n").slice(1);
+
+        contacts = lines.map(line => {
+          const [
+            company,
+            contact_name,
+            title,
+            contact_phone,
+            contact_email,
+            account_manager,
+            account_manager_phone
+          ] = line.split(",");
+
+          return {
+            company: company.trim(),
+            contact_name: contact_name.trim(),
+            title: title.trim(),
+            contact_phone: contact_phone.trim(),
+            contact_email: contact_email.trim(),
+            account_manager: account_manager.trim(),
+            account_manager_phone: account_manager_phone.trim()
+          };
+        });
+
+        render(contacts);
+      });
+
+    function render(data) {
+      const container = document.getElementById("results");
+      const noResults = document.getElementById("noResults");
+      container.innerHTML = "";
+
+      if (data.length === 0) {
+        noResults.style.display = "block";
+        return;
+      }
+
+      noResults.style.display = "none";
+
+      const grouped = data.reduce((acc, item) => {
+        acc[item.company] = acc[item.company] || [];
+        acc[item.company].push(item);
+        return acc;
+      }, {});
+
+      Object.keys(grouped).forEach(company => {
+        const companyData = grouped[company];
+        const manager = companyData[0];
+
+        const card = document.createElement("div");
+        card.className = "company-card";
+
+        card.innerHTML = `
+          <div class="company-header">${company}</div>
+          <div class="account-manager">
+            <strong>Account Manager:</strong> ${manager.account_manager}
+            | <strong>Phone:</strong> ${manager.account_manager_phone}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Title</th>
+                <th>Email</th>
+                <th>Phone</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${companyData.map(c => `
+                <tr>
+                  <td>${c.contact_name}</td>
+                  <td>${c.title}</td>
+                  <td>${c.contact_email}</td>
+                  <td>${c.contact_phone}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    document.getElementById("search").addEventListener("input", e => {
+      const q = e.target.value.toLowerCase().trim();
+
+      const filtered = contacts.filter(c =>
+        c.company.toLowerCase().includes(q) ||
+        c.contact_name.toLowerCase().includes(q) ||
+        c.title.toLowerCase().includes(q) ||
+        c.contact_phone.includes(q) ||
+        c.account_manager.toLowerCase().includes(q)
+      );
+
+      render(filtered);
+    });
+  </script>
+</body>
+</html>
